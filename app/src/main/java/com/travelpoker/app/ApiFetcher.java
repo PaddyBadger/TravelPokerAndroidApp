@@ -21,14 +21,7 @@ import java.util.ArrayList;
 public class ApiFetcher {
     public static final String TAG = "ApiFetcher";
     private static final String ns = null;
-
     private static final String ENDPOINT = "http://www.travelpoker.co/decks.xml";
-
-//    private static final String FIND_DECK_TITLE = "title";
-    private static final String FIND_DECK = "deck";
-//    private static final String FIND_DECK_ID = "title";
-
-
 
     byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
@@ -47,7 +40,6 @@ public class ApiFetcher {
             while ((bytesRead = in.read(buffer)) > 0) {
                 out.write(buffer, 0, bytesRead);
             }
-
             out.close();
             return out.toByteArray();
         } finally {
@@ -63,54 +55,77 @@ public class ApiFetcher {
         ArrayList<DeckGalleryItem> items = new ArrayList<DeckGalleryItem>();
         try{
             String url = Uri.parse(ENDPOINT).toString();
-            Log.i("url", " " +url);
             String xmlString = getUrl(url);
-           // Log.i(TAG, "Received xml: " + xmlString);
+            Log.i(TAG, "Received xml: " + xmlString.length());
+
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
             XmlPullParser parser = factory.newPullParser();
+            Log.i("parser", " "+parser);
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
             parser.setInput(new StringReader(xmlString));
-
             parseItems(items, parser);
         } catch (IOException ioe) {
             Log.e(TAG, "FAIL", ioe);
         } catch (XmlPullParserException xppe) {
             Log.e(TAG, "FAIL in parse Items", xppe);
         }
-
         return items;
     }
 
     void parseItems(ArrayList<DeckGalleryItem> items, XmlPullParser parser)
         throws XmlPullParserException, IOException {
-        parser.require(XmlPullParser.START_TAG, "", "deck");
 
-        String title = null;
-        String id = null;
-        String mobile = null;
         int eventType = parser.nextTag();
 
-        while (eventType != XmlPullParser.END_DOCUMENT) {
+        parser.require(XmlPullParser.START_TAG, ns,"decks");
+        while (parser.nextTag() != XmlPullParser.END_TAG) {
             if(parser.getEventType() != XmlPullParser.START_TAG) {
                 continue;
             }
             String name = parser.getName();
-            if (name.equals("title")) {
+
+            if (name.equals("deck")) {
+                items.add(readDeck(parser));
+            } else {
+                skip(parser);
+                Log.i("parser skipped", "");
+            }
+        }
+    }
+
+    private DeckGalleryItem readDeck(XmlPullParser parser) throws XmlPullParserException, IOException {
+        parser.require(XmlPullParser.START_TAG, ns, "deck");
+
+        String title = null;
+        String id = null;
+        String mobile = null;
+
+        while (parser.nextTag() != XmlPullParser.END_TAG) {
+            if(parser.getEventType() != XmlPullParser.START_TAG) {
+                continue;
+            }
+            String name = parser.getName();
+            Log.i("name in deck", "" +name);
+            if (name.equals("id")) {
+                id = readId(parser);
+                Log.i("id ", "" +id);
+            } else if (name.equals("title")) {
                 title = readTitle(parser);
                 Log.i("title ", "" +title);
-            } else if (name.equals("id")) {
-                id = readId(parser);
-            } else if (name.equals("mobile")) {
-                mobile = readMobile(parser);
+            } else if (name.equals("image")) {
+                mobile = readImage(parser);
+                Log.i("image ", "" +mobile);
             }  else {
                 skip(parser);
+                Log.i("skip called on deck", "");
             }
-            DeckGalleryItem item = new DeckGalleryItem();
-            item.setTitle(title);
-            item.setId(id);
-            item.setUrl(mobile);
-            items.add(item);
         }
+        DeckGalleryItem item = new DeckGalleryItem();
+        item.setTitle(title);
+        item.setId(id);
+        item.setUrl(mobile);
+        Log.i("item", "is created" +item);
+        return item;
     }
 
     private String readTitle(XmlPullParser parser) throws IOException, XmlPullParserException {
@@ -127,11 +142,29 @@ public class ApiFetcher {
         return title;
     }
 
-    private String readMobile(XmlPullParser parser) throws IOException, XmlPullParserException {
+    private String readImage(XmlPullParser parser) throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, ns, "image");
+        String mobile = null;
+        while (parser.nextTag() != XmlPullParser.END_TAG) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) {
+                continue;
+            }
+            String name = parser.getName();
+            if (name.equals("url")) {
+                mobile = readImageUrl(parser);
+            } else {
+                skip(parser);
+            }
+        }
+
+        return mobile;
+    }
+
+    private String readImageUrl(XmlPullParser parser) throws IOException, XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, ns, "url");
-        String title = readText(parser);
+        String imageUrl = readText(parser);
         parser.require(XmlPullParser.END_TAG, ns, "url");
-        return title;
+        return imageUrl;
     }
 
     private String readText(XmlPullParser parser) throws IOException, XmlPullParserException {

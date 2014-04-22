@@ -8,6 +8,10 @@ public class DeckGalleryItem {
     private String mId;
     private String mUrl;
 
+    public String toString() {
+        return mTitle;
+    }
+
     public String getTitle() {
         return mTitle;
     }
