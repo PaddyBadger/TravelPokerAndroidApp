@@ -41,6 +41,16 @@ public class DeckThumbnailDownloader<Token> extends HandlerThread {
 
     @Override
     protected void onLooperPrepared() {
+        final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+        final int cacheSize = maxMemory / 8;
+
+        mMemoryCache = new LruCache<String, Bitmap>(cacheSize) {
+            @Override
+            protected int sizeOf(String key, Bitmap bitmap) {
+                return bitmap.getByteCount() / 1024;
+            }
+        };
+
         mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -50,6 +60,16 @@ public class DeckThumbnailDownloader<Token> extends HandlerThread {
                 }
             }
         };
+    }
+
+    public void addBitmapToMemoryCache(String key, Bitmap bitmap) {
+        if (getBitmapFromMemCache(key) == null) {
+            mMemoryCache.put(key, bitmap);
+        }
+    }
+
+    public Bitmap getBitmapFromMemCache(String key) {
+        return mMemoryCache.get(key);
     }
 
     public void queueThumbnail(Token token, String url) {
@@ -64,21 +84,31 @@ public class DeckThumbnailDownloader<Token> extends HandlerThread {
     private void handleRequest(final Token token) {
         try {
             final String url = requestMap.get(token);
+            final Bitmap bitmapCache = getBitmapFromMemCache(url);
+            final Bitmap bitmap;
+
             if (url == null)
                 return;
 
-            byte[] bitmapBytes = new ApiFetcher().getUrlBytes(url);
-            final Bitmap bitmap = BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length);
+            if (bitmapCache != null) {
+                bitmap = bitmapCache;
+            } else {
+
+                byte[] bitmapBytes = new ApiFetcher().getUrlBytes(url);
+                bitmap = BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length);
+                addBitmapToMemoryCache(url, bitmap);
+            }
 
             mResponseHandler.post(new Runnable() {
                 public void run() {
-                   if (requestMap.get(token) != url)
-                       return;
+                    if (requestMap.get(token) != url)
+                        return;
 
                     requestMap.remove(token);
                     mListener.onThumbnailDownloaded(token, bitmap);
                 }
             });
+
         } catch (IOException ioe) {
             Log.e(TAG, "Error in image download");
         }

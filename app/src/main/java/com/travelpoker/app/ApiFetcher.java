@@ -105,26 +105,20 @@ public class ApiFetcher {
                 continue;
             }
             String name = parser.getName();
-            Log.i("name in deck", "" +name);
             if (name.equals("id")) {
                 id = readId(parser);
-                Log.i("id ", "" +id);
             } else if (name.equals("title")) {
                 title = readTitle(parser);
-                Log.i("title ", "" +title);
             } else if (name.equals("image")) {
                 mobile = readImage(parser);
-                Log.i("image ", "" +mobile);
             }  else {
                 skip(parser);
-                Log.i("skip called on deck", "");
             }
         }
         DeckGalleryItem item = new DeckGalleryItem();
         item.setTitle(title);
         item.setId(id);
         item.setUrl(mobile);
-        Log.i("item", "is created" +item);
         return item;
     }
 
