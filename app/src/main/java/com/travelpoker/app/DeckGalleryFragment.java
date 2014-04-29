@@ -100,7 +100,6 @@ public class DeckGalleryFragment extends Fragment {
             }
 
             ImageView imageView = (ImageView)convertView.findViewById(R.id.deck_item_imageView);
-            imageView.setImageResource(R.drawable.rio);
             DeckGalleryItem item = getItem(position);
             mThumbnailThread.queueThumbnail(imageView, item.getUrl());
 

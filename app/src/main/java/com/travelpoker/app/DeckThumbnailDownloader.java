@@ -84,19 +84,19 @@ public class DeckThumbnailDownloader<Token> extends HandlerThread {
     private void handleRequest(final Token token) {
         try {
             final String url = requestMap.get(token);
-            final Bitmap bitmapCache = getBitmapFromMemCache(url);
-            final Bitmap bitmap;
 
             if (url == null)
                 return;
 
-            if (bitmapCache != null) {
-                bitmap = bitmapCache;
-            } else {
+            final Bitmap bitmapCache = getBitmapFromMemCache(url);
+            final Bitmap bitmap;
 
+            if (bitmapCache == null) {
                 byte[] bitmapBytes = new ApiFetcher().getUrlBytes(url);
                 bitmap = BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length);
                 addBitmapToMemoryCache(url, bitmap);
+            } else {
+                bitmap = bitmapCache;
             }
 
             mResponseHandler.post(new Runnable() {
