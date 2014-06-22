@@ -6,6 +6,6 @@
     android:columnWidth="180dp"
     android:numColumns="auto_fit"
     android:stretchMode="columnWidth"
-    tools:context="com.travelpoker.app.MainActivity">
+    tools:context="com.travelpoker.app.views.MainActivity">
 
 </GridView>

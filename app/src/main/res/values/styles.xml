@@ -5,4 +5,10 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <color name="white">#FFFFFF</color>
+    <color name="blue">#01B5E8</color>
+    <color name="green">#44ab52</color>
+    <color name="textBlue">#320404B4</color>
+
+
 </resources>

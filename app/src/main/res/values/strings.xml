@@ -5,4 +5,9 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
 
+    <string-array name="navigation_titles">
+        <item>User Profile</item>
+        <item>My Decks</item>
+    </string-array>
+
 </resources>

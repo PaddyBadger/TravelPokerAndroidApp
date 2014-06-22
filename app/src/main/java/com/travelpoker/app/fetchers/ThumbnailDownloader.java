@@ -1,4 +1,4 @@
-package com.travelpoker.app;
+package com.travelpoker.app.fetchers;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * Created by patriciaestridge on 4/22/14.
  */
-public class DeckThumbnailDownloader<Token> extends HandlerThread {
+public class ThumbnailDownloader<Token> extends HandlerThread {
     private static final String TAG = "ThumbnailDownloader";
     private static final int MESSAGE_DOWNLOAD = 0;
     private LruCache<String, Bitmap> mMemoryCache;
@@ -34,7 +34,7 @@ public class DeckThumbnailDownloader<Token> extends HandlerThread {
         mListener = listener;
     }
 
-    public DeckThumbnailDownloader(Handler responseHandler) {
+    public ThumbnailDownloader(Handler responseHandler) {
         super(TAG);
         mResponseHandler = responseHandler;
     }
@@ -92,7 +92,7 @@ public class DeckThumbnailDownloader<Token> extends HandlerThread {
             final Bitmap bitmap;
 
             if (bitmapCache == null) {
-                byte[] bitmapBytes = new ApiFetcher().getUrlBytes(url);
+                byte[] bitmapBytes = new HomePageApiFetcher().getUrlBytes(url);
                 bitmap = BitmapFactory.decodeByteArray(bitmapBytes, 0, bitmapBytes.length);
                 addBitmapToMemoryCache(url, bitmap);
             } else {

@@ -1,8 +1,8 @@
-package com.travelpoker.app;
+package com.travelpoker.app.fetchers;
 
-import android.net.Uri;
 import android.util.Log;
 
+import com.travelpoker.app.objects.CardGalleryItem;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -16,12 +16,11 @@ import java.net.URL;
 import java.util.ArrayList;
 
 /**
- * Created by patriciaestridge on 4/14/14.
+ * Created by patriciaestridge on 5/22/14.
  */
-public class ApiFetcher {
-    public static final String TAG = "ApiFetcher";
+public class DeckPageApiFetcher {
+    public static final String TAG = "DeckPageApiFetcher";
     private static final String ns = null;
-    private static final String ENDPOINT = "http://www.travelpoker.co/decks.xml";
 
     byte[] getUrlBytes(String urlSpec) throws IOException {
         URL url = new URL(urlSpec);
@@ -51,18 +50,21 @@ public class ApiFetcher {
         return new String(getUrlBytes(urlSpec));
     }
 
-    public ArrayList<DeckGalleryItem> getItems() {
-        ArrayList<DeckGalleryItem> items = new ArrayList<DeckGalleryItem>();
+    public ArrayList<CardGalleryItem> getItems(String url) {
+        ArrayList<CardGalleryItem> items = new ArrayList<CardGalleryItem>();
         try{
-            String url = Uri.parse(ENDPOINT).toString();
             String xmlString = getUrl(url);
-            Log.i(TAG, "Received xml: " + xmlString.length());
+
+            String[] s = xmlString.split("cards");
+            String start = "<cards";
+            String end = "cards>";
+            String cardsArray = start + s[1] + end;
 
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
             XmlPullParser parser = factory.newPullParser();
-            Log.i("parser", " "+parser);
-            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            parser.setInput(new StringReader(xmlString));
+
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true);
+            parser.setInput(new StringReader(cardsArray));
             parseItems(items, parser);
         } catch (IOException ioe) {
             Log.e(TAG, "FAIL", ioe);
@@ -72,33 +74,36 @@ public class ApiFetcher {
         return items;
     }
 
-    void parseItems(ArrayList<DeckGalleryItem> items, XmlPullParser parser)
-        throws XmlPullParserException, IOException {
+    void parseItems(ArrayList<CardGalleryItem> items, XmlPullParser parser)
+            throws XmlPullParserException, IOException {
 
         int eventType = parser.nextTag();
 
-        parser.require(XmlPullParser.START_TAG, ns,"decks");
+        parser.require(XmlPullParser.START_TAG, ns,"cards");
         while (parser.nextTag() != XmlPullParser.END_TAG) {
             if(parser.getEventType() != XmlPullParser.START_TAG) {
                 continue;
             }
             String name = parser.getName();
 
-            if (name.equals("deck")) {
-                items.add(readDeck(parser));
+            if (name.equals("card")) {
+                items.add(readCard(parser));
             } else {
                 skip(parser);
-                Log.i("parser skipped", "");
+                Log.i("parser skipped at card", "");
             }
         }
     }
 
-    private DeckGalleryItem readDeck(XmlPullParser parser) throws XmlPullParserException, IOException {
-        parser.require(XmlPullParser.START_TAG, ns, "deck");
+    private CardGalleryItem readCard(XmlPullParser parser) throws XmlPullParserException, IOException {
+        parser.require(XmlPullParser.START_TAG, ns, "card");
 
         String title = null;
         String id = null;
         String mobile = null;
+        String description = null;
+        String longitude = null;
+        String latitude = null;
 
         while (parser.nextTag() != XmlPullParser.END_TAG) {
             if(parser.getEventType() != XmlPullParser.START_TAG) {
@@ -111,14 +116,25 @@ public class ApiFetcher {
                 title = readTitle(parser);
             } else if (name.equals("image")) {
                 mobile = readImage(parser);
-            }  else {
+            } else if (name.equals("description")) {
+                description = readDescription(parser);
+            } else if (name.equals("longitude")) {
+                longitude = readLongitude(parser);
+            } else if (name.equals("latitude"))  {
+                latitude = readLatitude(parser);
+            }
+              else
+            {
                 skip(parser);
             }
         }
-        DeckGalleryItem item = new DeckGalleryItem();
+        CardGalleryItem item = new CardGalleryItem();
         item.setTitle(title);
         item.setId(id);
         item.setUrl(mobile);
+        item.setDescription(description);
+        item.setLatitude(latitude);
+        item.setLongitude(longitude);
         return item;
     }
 
@@ -131,9 +147,16 @@ public class ApiFetcher {
 
     private String readId(XmlPullParser parser) throws IOException, XmlPullParserException {
         parser.require(XmlPullParser.START_TAG, ns, "id");
-        String title = readText(parser);
+        String id = readText(parser);
         parser.require(XmlPullParser.END_TAG, ns, "id");
-        return title;
+        return id;
+    }
+
+    private String readDescription(XmlPullParser parser) throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, ns, "description");
+        String description = readText(parser);
+        parser.require(XmlPullParser.END_TAG, ns, "description");
+        return description;
     }
 
     private String readImage(XmlPullParser parser) throws IOException, XmlPullParserException {
@@ -163,12 +186,26 @@ public class ApiFetcher {
 
     private String readText(XmlPullParser parser) throws IOException, XmlPullParserException {
         String result = "";
-        Log.i("ReadText", "gets called");
+
         if (parser.next() == XmlPullParser.TEXT) {
             result = parser.getText();
             parser.nextTag();
         }
         return result;
+    }
+
+    private String readLongitude(XmlPullParser parser) throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, ns, "longitude");
+        String longitude = readText(parser);
+        parser.require(XmlPullParser.END_TAG, ns, "longitude");
+        return longitude;
+    }
+
+    private String readLatitude(XmlPullParser parser) throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, ns, "latitude");
+        String latitude = readText(parser);
+        parser.require(XmlPullParser.END_TAG, ns, "latitude");
+        return latitude;
     }
 
     private void skip(XmlPullParser parser) throws XmlPullParserException, IOException {
